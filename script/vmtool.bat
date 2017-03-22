@@ -183,10 +183,12 @@ for %%i in ("%VBOX_ISO_URL%") do set VBOX_ISO=%%~nxi
 set VBOX_ISO_DIR=%TEMP%\virtualbox
 set VBOX_ISO_PATH=%VBOX_ISO_DIR%\%VBOX_ISO%
 set VBOX_ISO=VBoxGuestAdditions.iso
+set VBOX_CERT_FILE=vbox-sha1.cer
 mkdir "%VBOX_ISO_DIR%"
 pushd "%VBOX_ISO_DIR%"
 set VBOX_SETUP_PATH=
 @for %%i in (%PACKER_SEARCH_PATHS%) do @if not defined VBOX_SETUP_PATH @if exist "%%~i\%VBOX_SETUP_EXE%" set VBOX_SETUP_PATH=%%~i\%VBOX_SETUP_EXE%
+@for %%i in (%PACKER_SEARCH_PATHS%) do @if not defined VBOX_CERT_PATH @if exist "%%~i\%VBOX_CERT_FILE%" set VBOX_CERT_PATH=%%~i\%VBOX_CERT_FILE%
 if defined VBOX_SETUP_PATH goto install_vbox_guest_additions
 
 @for %%i in (%PACKER_SEARCH_PATHS%) do @if exist "%%~i\%VBOX_ISO%" set VBOX_ISO_PATH=%%~i\%VBOX_ISO%
@@ -209,15 +211,16 @@ call :install_sevenzip
 if errorlevel 1 goto exit1
 echo ==^> Extracting the VirtualBox Guest Additions installer
 7z e -o"%VBOX_ISO_DIR%" "%VBOX_ISO_PATH%" "%VBOX_SETUP_EXE%"
+echo ==^> Extracting the VirtualBox Guest Additions certificate
+7z e -o"%VBOX_ISO_DIR%" "%VBOX_ISO_PATH%" "cert\%VBOX_CERT_FILE%"
 @if errorlevel 1 echo ==^> WARNING: Error %ERRORLEVEL% was returned by: 7z e -o"%VBOX_ISO_DIR%" "%VBOX_ISO_PATH%" "%VBOX_SETUP_EXE%"
 ver>nul
 set VBOX_SETUP_PATH=%VBOX_ISO_DIR%\%VBOX_SETUP_EXE%
 if not exist "%VBOX_SETUP_PATH%" echo ==^> Unable to unzip "%VBOX_ISO_PATH%" & goto exit1
 
 :install_vbox_guest_additions
-if not exist a:\oracle-cert.cer echo ==^> ERROR: File not found: a:\oracle-cert.cer & goto exit1
 echo ==^> Installing Oracle certificate to keep install silent
-certutil -addstore -f "TrustedPublisher" a:\oracle-cert.cer
+certutil -addstore -f "TrustedPublisher" "%VBOX_ISO_DIR%\%VBOX_CERT_FILE%"
 echo ==^> Installing VirtualBox Guest Additions
 "%VBOX_SETUP_PATH%" /S
 @if errorlevel 1 echo ==^> WARNING: Error %ERRORLEVEL% was returned by: "%VBOX_SETUP_PATH%" /S
